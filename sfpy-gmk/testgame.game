@@ -1,0 +1,47 @@
+$type game
+$name
+Test Game
+
+$type obj
+$name
+Obj1
+$prop collidable
+True
+$prop visible
+True
+$prop position
+Vector2(0,0)
+$prop name
+'Obj1'
+$prop texture
+'pig'
+$prop velocity
+Vector2(0,0)
+
+$type obj
+$name
+Obj2
+$prop collidable
+True
+$prop visible
+True
+$prop position
+Vector2(0,0)
+$prop name
+'Obj2'
+$prop texture
+'bob'
+$prop velocity
+Vector2(0,0)
+
+$type tex
+$prop name
+pig
+$prop filename
+pig.png
+
+$type tex
+$prop name
+bob
+$prop filename
+bob.png

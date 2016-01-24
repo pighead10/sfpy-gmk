@@ -1,0 +1,38 @@
+import python ;
+
+if ! [ python.configured ]
+{
+		ECHO "notice: no Python configured in user-config.jam, will use default configuration" ;
+		using python ;
+}
+
+use-project boost
+	: D:/boost_1_55/boost_1_55_0 ;
+	
+lib sfml-graphics : : <name>sfml-graphics <search>D:/SFML/SFML-2.2/lib ;
+lib sfml-main : : <name>sfml-main <search>D:/SFML/SFML-2.2/lib ;
+lib sfml-system : : <name>sfml-system <search>D:/SFML/SFML-2.2/lib ;
+lib sfml-window : : <name>sfml-window <search>D:/SFML/SFML-2.2/lib ;
+explicit sfmlpy ;
+	
+project
+	: requirements <library>/boost/python//boost_python
+					<library>sfml-graphics
+					<library>sfml-main
+					<library>sfml-system
+					<library>sfml-window
+					<implicit-dependency>/boost//headers
+					<threading>multi
+					<include>D:/SFML/SFML-2/include
+	: usage-requirements <implicit-dependency>/boost//headers
+	;
+	
+python-extension sfgame : main.cpp Game.cpp Entity.cpp Vector2.cpp Projection.cpp Collision.cpp
+	: <include>../
+	;
+	
+install convenient_copy
+	: sfgame
+	: <install-dependencies>on <install-type>SHARED_LIB <install-type>PYTHON_EXTENSION
+	 <location>.
+	;
