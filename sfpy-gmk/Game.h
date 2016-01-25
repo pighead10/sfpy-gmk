@@ -32,7 +32,19 @@ public:
 
 	enum GAME_EVENT{
 		Collision,
+		KeyPressed,
+		KeyReleased,
+		MousePressed,
+		MouseReleased
 	};
+
+	enum MOUSE_BUTTON{
+		Button1,
+		Button2,
+		Button3
+	};
+
+	void fireGlobalEvent(GAME_EVENT evt,boost::python::tuple args);
 private:
 	void load_textures();
 	std::string generatePyClassString(const StringMap& props) const;

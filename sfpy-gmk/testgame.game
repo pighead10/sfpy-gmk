@@ -34,6 +34,22 @@ $prop texture
 $prop velocity
 Vector2(0,0)
 
+$type obj
+$name
+Player
+$prop collidable
+True
+$prop visible
+True
+$prop position
+Vector2(0,0)
+$prop name
+'Player'
+$prop texture
+'pig'
+$prop velocity
+Vector2(0,0)
+
 $type tex
 $prop name
 pig

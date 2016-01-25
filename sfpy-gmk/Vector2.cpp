@@ -23,7 +23,7 @@ namespace maths{
 		x = x_;
 	}
 	void Vector2::setY(double y_){
-		y_ = y;
+		y = y_;
 	}
 	Vector2 Vector2::rotate(float degrees, const Vector2& origin) const{
 		float radians = maths::toRadians(degrees);

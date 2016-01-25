@@ -45,6 +45,15 @@ BOOST_PYTHON_MODULE(sfgame){
 		;
 	enum_<Game::GAME_EVENT>("GameEvent")
 		.value("Collision", Game::Collision)
+		.value("KeyPressed",Game::KeyPressed)
+		.value("KeyReleased",Game::KeyReleased)
+		.value("MousePressed",Game::MousePressed)
+		.value("MouseReleased",Game::MouseReleased)
+		;
+	enum_<Game::MOUSE_BUTTON>("MouseButton")
+		.value("Button1", Game::Button1)
+		.value("Button2", Game::Button2)
+		.value("Button3", Game::Button3)
 		;
 	scope().attr("game") = ptr(game);
 }

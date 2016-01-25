@@ -41,6 +41,45 @@ void Game::start_gameloop(){
 			if (evt.type == sf::Event::Closed){
 				exit_ = true;
 			}
+			else if (evt.type == sf::Event::KeyPressed || evt.type == sf::Event::KeyReleased){
+				GAME_EVENT game_evt = (evt.type == sf::Event::KeyPressed ? KeyPressed : KeyReleased);
+				std::string arg;
+				if (evt.key.code >= 0 && evt.key.code <= 25){
+					arg = (char)(65 + evt.key.code);
+				}
+				else if (evt.key.code >= 26 && evt.key.code <= 35){
+					arg = std::to_string(evt.key.code - 26);
+				}
+				else if (evt.key.code == sf::Keyboard::Left){
+					arg = "left";
+				}
+				else if (evt.key.code == sf::Keyboard::Right){
+					arg = "right";
+				}
+				else if (evt.key.code == sf::Keyboard::Up){
+					arg = "up";
+				}
+				else if (evt.key.code == sf::Keyboard::Down){
+					arg = "down";
+				}
+
+				fireGlobalEvent(game_evt, boost::python::make_tuple(arg));
+			}
+			else if (evt.type == sf::Event::MouseButtonPressed || evt.type == sf::Event::MouseButtonReleased){
+				AcquireGIL gil = AcquireGIL();
+				GAME_EVENT game_evt = (evt.type == sf::Event::MouseButtonPressed ? MousePressed : MouseReleased);
+				MOUSE_BUTTON but;
+				if (evt.mouseButton.button == sf::Mouse::Left){
+					but = Button1;
+				}
+				else if (evt.mouseButton.button == sf::Mouse::Right){
+					but = Button2;
+				}
+				else if (evt.mouseButton.button == sf::Mouse::Middle){
+					but = Button3;
+				}
+				fireGlobalEvent(game_evt, boost::python::make_tuple(but,maths::Vector2(evt.mouseButton.x, evt.mouseButton.y)));
+			}
 		}
 
 		//Run graphics as fast as possible while keeping physics framerate constant
@@ -267,6 +306,15 @@ void Game::start_py(){
 		//}
 	}
 }
+
+void Game::fireGlobalEvent(GAME_EVENT evt, boost::python::tuple args){
+	AcquireGIL gil = AcquireGIL();
+	//Fire event in all entities
+	for (auto& it : objects_){
+		it.second->fireEvent(evt, args);
+	}
+}
+
 
 void Game::addThread(boost::python::object thread){
 	//Add thread to list so that its lifetime is controlled
