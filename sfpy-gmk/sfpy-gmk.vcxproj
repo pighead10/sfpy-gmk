@@ -75,6 +75,7 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Projection.cpp" />
+    <ClCompile Include="Script.cpp" />
     <ClCompile Include="Vector2.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -84,6 +85,7 @@
     <ClInclude Include="gil.h" />
     <ClInclude Include="Projection.h" />
     <ClInclude Include="ResourceManager.h" />
+    <ClInclude Include="Script.h" />
     <ClInclude Include="Vector2.h" />
   </ItemGroup>
   <ItemGroup>

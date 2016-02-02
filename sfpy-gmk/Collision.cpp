@@ -82,7 +82,8 @@ MTV Collision::getCollision(const sf::Sprite& object1,Entity::ENTITY_SHAPE shape
 		maths::Vector2 botLeft(squareRect.left, squareRect.top + squareRect.height);
 		maths::Vector2 botRight(squareRect.left + squareRect.width, squareRect.top + squareRect.height);
 
-		//Get axis to check - see documentation for explanation
+		//Get the closest vertex of the rectangle to the circle centre.
+		//The axis to check is the vector between these 2 points.
 		if(circleCentre.x < topLeft.x){
 			if(circleCentre.y < topLeft.y){
 				vertice = true;

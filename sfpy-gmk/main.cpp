@@ -68,7 +68,7 @@ int main(){
 	//Import and intitialise the sfgame module
 	import("sfgame");
 
-	game->load("testgame.game");
+	game->load("example10");
 
 	//Release GIL so that gameloop_thread can acquire it
 	ReleaseGIL gil = ReleaseGIL();

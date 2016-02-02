@@ -6,8 +6,15 @@
 #include <fstream>
 #include <string>
 #include "gil.h"
+#include "Script.h"
 
 #define MS_PER_UPDATE 1
+
+//TODO NEXT:
+//Add apostraphes in save files
+//Data validation
+//Test everything from Python side!
+//Shoudl be able to do this from college
 
 Game::Game():game_name_(""){
 }
@@ -62,6 +69,9 @@ void Game::start_gameloop(){
 				else if (evt.key.code == sf::Keyboard::Down){
 					arg = "down";
 				}
+				if (evt.key.code == sf::Keyboard::L){ //TEMP
+					//scheduleLevel("testgame.level");
+				}
 
 				fireGlobalEvent(game_evt, boost::python::make_tuple(arg));
 			}
@@ -98,7 +108,9 @@ void Game::start_gameloop(){
 	window.close();
 }
 
-void Game::load(std::string gamefile){
+void Game::load(std::string filename){
+	load_file_ = filename;
+	std::string gamefile = load_file_ + ".game";
 	//Read gamefile to store game properties (objects, sprites, etc)
 	using namespace std;
 
@@ -118,6 +130,10 @@ void Game::load(std::string gamefile){
 				}
 				else if (type == TYPE_TEX){
 					tex_props_.back()[prop] = line;
+					prefix = PREFIX_NONE;
+				}
+				else if (type == TYPE_SCRIPT){
+					script_props_.back()[prop] = line;
 					prefix = PREFIX_NONE;
 				}
 			}
@@ -158,6 +174,14 @@ void Game::load(std::string gamefile){
 								type = TYPE_TEX;
 								tex_props_.push_back(StringMap());
 							}
+							else if (word == "sound"){
+								type = TYPE_SOUND;
+								sound_props_.push_back(StringMap());
+							}
+							else if (word == "script"){
+								type = TYPE_SCRIPT;
+								script_props_.push_back(StringMap());
+							}
 						}
 						else if (prefix == PREFIX_PROP){
 							prop = word;
@@ -169,6 +193,14 @@ void Game::load(std::string gamefile){
 	}
 
 	load_textures();
+	load_sounds();
+	load_scripts();
+}
+
+void Game::load_scripts(){
+	for (auto& it : script_props_){
+		scripts_.push_back(std::unique_ptr<Script>(new Script(it["name"],it["filename"])));
+	}
 }
 
 ObjectList* Game::getObjects(){
@@ -181,8 +213,18 @@ void Game::load_textures(){
 	}
 }
 
+void Game::load_sounds(){
+	for (auto& it : sound_props_){
+		sounds_.load(it["name"], it["filename"]);
+	}
+}
+
 ResourceManager<sf::Texture, std::string>* Game::getTextures(){
 	return &textures_;
+}
+
+void Game::scheduleLevel(std::string filename){
+	scheduled_levels_.push_back(filename);
 }
 
 std::string Game::generatePyClassString(const StringMap& props) const{
@@ -234,12 +276,15 @@ void Game::start_py(){
 		object global = main_module.attr("__dict__");
 
 		object sfgame_module = import("sfgame");
-
-		
+	
 		std::string string1 = 
 			"from threading import Thread		\n"
 			"from sfgame import *				\n";
 
+		for (auto& it : scripts_){ //TODO add enabled property
+			string1 += "import " + it->getImportName() + "\n";
+		}
+		std::cout << string1 << std::endl;
 		//define all classes
 		for (auto& it : obj_props_){
 			string1 += generatePyClassString(it);
@@ -275,18 +320,35 @@ void Game::start_py(){
 			"	game._addThread(t)						\n"
 			"game._runEvent = _runEvent					\n";
 
-
-
-
 		object result2 = exec(string2.c_str(), global, global);
 
-		object run_script = exec_file("testglob.py", global, global);
+		std::string string3 =
+			"def _start():					\n";
+		for (auto& it : scripts_){
+			string3 +=
+				"	t = Thread(target=" + it->getImportName() + ".run)		\n"
+				"	t.start()												\n"
+				"	game._addThread(t)										\n";
+		}
+
+		string3 += "_start()\n";
+
+		loadLevel(load_file_ + ".level");
+
+		std::cout << "STRING3:" << std::endl;
+		std::cout << string3 << std::endl;
+
+		std::cout << "before run scripts" << std::endl;
+		object run_scripts = exec(string3.c_str(), global, global);
+		std::cout << "after run scripts" << std::endl;
+
+		//object run_script = exec_file("testglob.py", global, global);
 
 		//Block this thread until all the threads created have terminated.
 		//Necessary because this thread is holding the GIL.
 		while (!threads_.empty()){
 			//Iterate on a copy of threads to prevent iterator invalidating due to new thread being added
-			std::vector<boost::python::object> current_it = threads_; 
+			std::vector<boost::python::object> current_it = threads_;
 			threads_.clear();
 			for (auto& it : current_it){
 				it.attr("join")();
@@ -324,16 +386,28 @@ void Game::addThread(boost::python::object thread){
 
 void Game::add(boost::python::object entity){
 	/*
-	Add C++ pointer of entity to container for updating, and python references 
+	Add C++ pointer of entity to container for updating, and python references
 	to entity so that C++ controls its lifetime.
 	Called as "game._addToC" from Python-defined game.add
 	*/
-	
+
 	Entity* ent = boost::python::extract<Entity*>(entity);
-	objects_.push_back(std::make_pair(entity, std::unique_ptr<Entity>(ent)));
+	object_queue_.push_back(std::make_pair(entity, std::unique_ptr<Entity>(ent)));
 }
 
 void Game::update(int frametime){
+	//load levels that are scheduled
+	for (auto& it = scheduled_levels_.begin(); it != scheduled_levels_.end();){
+		loadLevel(*it);
+		it = scheduled_levels_.erase(it);
+	}
+
+	//add objects in queue to list to be updated
+	for (auto& it = object_queue_.begin(); it != object_queue_.end();){
+		objects_.push_back(std::make_pair(it->first, std::move(it->second)));
+		it = object_queue_.erase(it);
+	}
+
 	for (auto& it : objects_){
 		it.second->update(frametime);
 	}
@@ -343,4 +417,72 @@ void Game::render(sf::RenderTarget* target){
 	for (auto& it : objects_){
 		it.second->render(target);
 	}
+}
+
+void Game::loadLevel(std::string filename){
+	using namespace std;
+	ifstream fin(filename);
+	string line;
+	CFG_TYPE type = TYPE_NONE;
+	CFG_PREFIX prefix = PREFIX_NONE;
+
+	for (auto& it = objects_.begin(); it != objects_.end();){
+		it->second.release(); //release ownership of pointer 
+		it = objects_.erase(it);
+	}
+	object_queue_.clear();
+	
+	string python_execute = "from sfgame import *\n";
+	while (getline(fin, line)){
+		if (type == TYPE_OBJ){
+			//if the previous line was an object then add it
+			python_execute += "game.add(_auto_loaded_object)\n";
+		}
+
+		type = TYPE_NONE;
+		prefix = PREFIX_NONE;
+		istringstream s(line);
+		string word;
+		
+		for (int i = 0; s >> word; i++){
+			if (type == TYPE_NONE){
+				if (word == "obj"){
+					type = TYPE_OBJ;
+					//current_entity = new Entity(this);
+					//addEntity(current_entity);
+					prefix = PREFIX_NEXT;
+				}
+			}
+			else if (type == TYPE_OBJ){
+				if (prefix == PREFIX_NONE){
+					prefix = PREFIX_NEXT;
+				}
+				else if (prefix == PREFIX_NEXT){
+					if (word == "name"){
+						prefix = PREFIX_NAME;
+					}
+					else if (word == "pos"){
+						prefix = PREFIX_POSX;
+					}
+				}
+				else if (prefix == PREFIX_NAME){
+					python_execute += "_auto_loaded_object = " + word + "()\n";
+					prefix = PREFIX_NEXT;
+				}
+				else if (prefix == PREFIX_POSX){
+					python_execute += "_auto_loaded_object.position = Vector2(" + word + ",_auto_loaded_object.position.y)\n";
+					prefix = PREFIX_POSY;
+				}
+				else if (prefix == PREFIX_POSY){
+					python_execute += "_auto_loaded_object.position = Vector2(_auto_loaded_object.position.x, " + word + ")\n";
+					prefix = PREFIX_NEXT;
+				}
+			}
+		}
+	}
+
+	std::cout << python_execute << std::endl;
+	boost::python::object main_module = boost::python::import("__main__");
+	boost::python::object global = main_module.attr("__dict__");
+	boost::python::exec(boost::python::str(python_execute), global, global);
 }
