@@ -1,54 +1,38 @@
 $type game
 $name
-Test Game
-
-$type obj
-$name
-Obj1
-$prop collidable
-True
-$prop visible
-True
-$prop position
-Vector2(0,0)
-$prop name
-'Obj1'
-$prop texture
-'pig'
-$prop velocity
-Vector2(0,0)
-
-$type obj
-$name
-Obj2
-$prop collidable
-True
-$prop visible
-True
-$prop position
-Vector2(0,0)
-$prop name
-'Obj2'
-$prop texture
-'bob'
-$prop velocity
-Vector2(0,0)
+example_whole20
 
 $type obj
 $name
 Player
 $prop collidable
 True
-$prop visible
-True
-$prop position
-Vector2(0,0)
 $prop name
 'Player'
+$prop position
+Vector2(0,0)
 $prop texture
 'pig'
 $prop velocity
 Vector2(0,0)
+$prop visible
+True
+
+$type obj
+$name
+Obj1
+$prop collidable
+True
+$prop name
+'Obj1'
+$prop position
+Vector2(0,0)
+$prop texture
+'bob'
+$prop velocity
+Vector2(0,0)
+$prop visible
+True
 
 $type tex
 $prop name
@@ -61,3 +45,4 @@ $prop name
 bob
 $prop filename
 bob.png
+

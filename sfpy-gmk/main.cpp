@@ -6,6 +6,7 @@
 #include "Entity.h"
 #include "gil.h"
 #include "Vector2.h"
+#include "Text.h"
 
 using namespace boost::python;
 
@@ -30,9 +31,14 @@ BOOST_PYTHON_MODULE(sfgame){
 		.def("lerp", &maths::Vector2::lerp)
 		.def("negate", &maths::Vector2::negate)
 		;
-	class_<Game,boost::noncopyable>("Game", no_init)
+	class_<Game, boost::noncopyable>("Game", no_init)
 		.def("_addToC", &Game::add)
-		.def("_addThread",&Game::addThread)
+		.def("_addThread", &Game::addThread)
+		.def("getObjectByName", &Game::getObjectByName)
+		.def("playSound", &Game::playSound)
+		.def("addText",&Game::addText)
+		.def("setBackgroundColour",&Game::setBackgroundColour)
+		.def("setBackgroundTexture", &Game::setBackgroundTexture)
 		;
 	class_<Entity>("Entity", init<>())
 		.def("_init_entity",&Entity::init_entity)
@@ -41,7 +47,18 @@ BOOST_PYTHON_MODULE(sfgame){
 		.add_property("collidable",&Entity::getCollidable,&Entity::setCollidable)
 		.add_property("texture",&Entity::getTexture,&Entity::setTexture)
 		.add_property("velocity",&Entity::getPyVelocity,&Entity::setPyVelocity)
+		.add_property("destroyed",&Entity::getDestroyed)
+		.add_property("name",&Entity::getName,&Entity::setName)
+		.add_property("render_behind",&Entity::getRenderBehind,&Entity::setRenderBehind)
+		.def("setShape",&Entity::setShape)
+		.def("destroy",&Entity::destroy)
 		.def("registerEvent",&Entity::registerEvent)
+		;
+	class_<Text>("Text", init<>())
+		.add_property("position", &Text::getPyPosition, &Text::setPyPosition)
+		.add_property("text", &Text::getText, &Text::setText)
+		.add_property("size", &Text::getFontSize, &Text::setFontSize)
+		.def("setColour",&Text::setColour)
 		;
 	enum_<Game::GAME_EVENT>("GameEvent")
 		.value("Collision", Game::Collision)
@@ -49,6 +66,9 @@ BOOST_PYTHON_MODULE(sfgame){
 		.value("KeyReleased",Game::KeyReleased)
 		.value("MousePressed",Game::MousePressed)
 		.value("MouseReleased",Game::MouseReleased)
+		.value("ObjectAdded",Game::ObjectAdded)
+		.value("ObjectRemoved",Game::ObjectRemoved)
+		.value("OutOfBounds", Game::OutOfBounds)
 		;
 	enum_<Game::MOUSE_BUTTON>("MouseButton")
 		.value("Button1", Game::Button1)
@@ -58,7 +78,16 @@ BOOST_PYTHON_MODULE(sfgame){
 	scope().attr("game") = ptr(game);
 }
 
-int main(){
+int main(int argc,char *argv[]){
+	std::string filename;
+	if (argc != 2){
+		std::cout << "ERROR: Incorrect number of arguments received" << std::endl;
+		filename = "VillagerGame";
+	}
+	else{
+		filename = argv[1];
+	}
+
 	//Register the sfgame module
 	PyImport_AppendInittab("sfgame", &initsfgame);
 
@@ -68,7 +97,7 @@ int main(){
 	//Import and intitialise the sfgame module
 	import("sfgame");
 
-	game->load("example10");
+	game->load(filename);
 
 	//Release GIL so that gameloop_thread can acquire it
 	ReleaseGIL gil = ReleaseGIL();

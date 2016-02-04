@@ -7,16 +7,13 @@
 #include <string>
 #include "gil.h"
 #include "Script.h"
+#include "Text.h"
 
 #define MS_PER_UPDATE 1
 
-//TODO NEXT:
-//Add apostraphes in save files
-//Data validation
-//Test everything from Python side!
-//Shoudl be able to do this from college
-
-Game::Game():game_name_(""){
+Game::Game():game_name_(""),init_(false){
+	background_set_ = false;
+	background_colour_ = sf::Color::White;
 }
 
 void Game::setPyInterpreterState(PyInterpreterState* interpreter_state){
@@ -38,74 +35,84 @@ void Game::start_gameloop(){
 
 
 	while (!exit_){
-		int current = clock.getElapsedTime().asMilliseconds();
-		int elapsed = current - previous;
-		previous = current;
-		lag += elapsed;
+		if (init_){
+			int current = clock.getElapsedTime().asMilliseconds();
+			int elapsed = current - previous;
+			previous = current;
+			lag += elapsed;
 
-		sf::Event evt;
-		while (window.pollEvent(evt)){
-			if (evt.type == sf::Event::Closed){
-				exit_ = true;
-			}
-			else if (evt.type == sf::Event::KeyPressed || evt.type == sf::Event::KeyReleased){
-				GAME_EVENT game_evt = (evt.type == sf::Event::KeyPressed ? KeyPressed : KeyReleased);
-				std::string arg;
-				if (evt.key.code >= 0 && evt.key.code <= 25){
-					arg = (char)(65 + evt.key.code);
+			sf::Event evt;
+			while (window.pollEvent(evt)){
+				if (evt.type == sf::Event::Closed){
+					exit_ = true;
 				}
-				else if (evt.key.code >= 26 && evt.key.code <= 35){
-					arg = std::to_string(evt.key.code - 26);
-				}
-				else if (evt.key.code == sf::Keyboard::Left){
-					arg = "left";
-				}
-				else if (evt.key.code == sf::Keyboard::Right){
-					arg = "right";
-				}
-				else if (evt.key.code == sf::Keyboard::Up){
-					arg = "up";
-				}
-				else if (evt.key.code == sf::Keyboard::Down){
-					arg = "down";
-				}
-				if (evt.key.code == sf::Keyboard::L){ //TEMP
-					//scheduleLevel("testgame.level");
-				}
+				else if (evt.type == sf::Event::KeyPressed || evt.type == sf::Event::KeyReleased){
+					GAME_EVENT game_evt = (evt.type == sf::Event::KeyPressed ? KeyPressed : KeyReleased);
+					std::string arg;
+					if (evt.key.code >= 0 && evt.key.code <= 25){
+						arg = (char)(65 + evt.key.code);
+					}
+					else if (evt.key.code >= 26 && evt.key.code <= 35){
+						arg = std::to_string(evt.key.code - 26);
+					}
+					else if (evt.key.code == sf::Keyboard::Left){
+						arg = "left";
+					}
+					else if (evt.key.code == sf::Keyboard::Right){
+						arg = "right";
+					}
+					else if (evt.key.code == sf::Keyboard::Up){
+						arg = "up";
+					}
+					else if (evt.key.code == sf::Keyboard::Down){
+						arg = "down";
+					}
+					if (evt.key.code == sf::Keyboard::L){ //TEMP
+						//scheduleLevel("testgame.level");
+					}
 
-				fireGlobalEvent(game_evt, boost::python::make_tuple(arg));
+					fireGlobalEvent(game_evt, boost::python::make_tuple(arg));
+				}
+				else if (evt.type == sf::Event::MouseButtonPressed || evt.type == sf::Event::MouseButtonReleased){
+					AcquireGIL gil = AcquireGIL();
+					GAME_EVENT game_evt = (evt.type == sf::Event::MouseButtonPressed ? MousePressed : MouseReleased);
+					MOUSE_BUTTON but;
+					if (evt.mouseButton.button == sf::Mouse::Left){
+						but = Button1;
+					}
+					else if (evt.mouseButton.button == sf::Mouse::Right){
+						but = Button2;
+					}
+					else if (evt.mouseButton.button == sf::Mouse::Middle){
+						but = Button3;
+					}
+					fireGlobalEvent(game_evt, boost::python::make_tuple(but, maths::Vector2(evt.mouseButton.x, evt.mouseButton.y)));
+				}
 			}
-			else if (evt.type == sf::Event::MouseButtonPressed || evt.type == sf::Event::MouseButtonReleased){
+
+			//Run graphics as fast as possible while keeping physics framerate constant
+			//Avoids problems that could arise due to variable time steps
+			while (lag >= MS_PER_UPDATE && !exit_){
+				//update function requires python API so needs to hold GIL
 				AcquireGIL gil = AcquireGIL();
-				GAME_EVENT game_evt = (evt.type == sf::Event::MouseButtonPressed ? MousePressed : MouseReleased);
-				MOUSE_BUTTON but;
-				if (evt.mouseButton.button == sf::Mouse::Left){
-					but = Button1;
-				}
-				else if (evt.mouseButton.button == sf::Mouse::Right){
-					but = Button2;
-				}
-				else if (evt.mouseButton.button == sf::Mouse::Middle){
-					but = Button3;
-				}
-				fireGlobalEvent(game_evt, boost::python::make_tuple(but,maths::Vector2(evt.mouseButton.x, evt.mouseButton.y)));
+				update(MS_PER_UPDATE);
+				lag -= MS_PER_UPDATE;
 			}
+			window.clear(background_colour_);
+			render(&window);
+			window.display();
 		}
-
-		//Run graphics as fast as possible while keeping physics framerate constant
-		//Avoids problems that could arise due to variable time steps
-		while (lag >= MS_PER_UPDATE && !exit_){
-			//update function requires python API so needs to hold GIL
-			AcquireGIL gil = AcquireGIL(); 
-			update(MS_PER_UPDATE);
-			lag -= MS_PER_UPDATE;
-		}
-		window.clear(sf::Color::White);
-		render(&window);
-		window.display();
 	}
 
 	window.close();
+}
+
+void Game::setBackgroundColour(int r, int g, int b){
+	background_colour_ = sf::Color(r, g, b);
+}
+
+sf::Font* Game::getFont(){
+	return &font_;
 }
 
 void Game::load(std::string filename){
@@ -134,6 +141,10 @@ void Game::load(std::string filename){
 				}
 				else if (type == TYPE_SCRIPT){
 					script_props_.back()[prop] = line;
+					prefix = PREFIX_NONE;
+				}
+				else if (type == TYPE_SOUND){
+					sound_props_.back()[prop] = line;
 					prefix = PREFIX_NONE;
 				}
 			}
@@ -195,6 +206,7 @@ void Game::load(std::string filename){
 	load_textures();
 	load_sounds();
 	load_scripts();
+
 }
 
 void Game::load_scripts(){
@@ -249,7 +261,19 @@ std::string Game::generatePyClassString(const StringMap& props) const{
 		"		except:							\n"
 		"			print('init not found')		\n";
 
+	s +=
+		"	def start(self):			\n"
+		"		pass					\n";
+
 	return s;
+}
+
+void Game::playSound(std::string soundname){
+	std::cout << "PLAY SOUND!!" << std::endl;
+	sf::Sound* sound = new sf::Sound();
+	sound->setBuffer(sounds_.get(soundname));
+	sound_list_.push_back(sound);
+	sound->play();
 }
 
 void Game::start_py(){
@@ -271,24 +295,28 @@ void Game::start_py(){
 		game_name_ = "sfpy-gmk game";
 	}
 	try{
+		font_.loadFromFile("font.ttf");
 		//import global Python namespace
-		object main_module = import("__main__");
-		object global = main_module.attr("__dict__");
+		main_module = import("__main__");
+		global = main_module.attr("__dict__");
 
 		object sfgame_module = import("sfgame");
+
+		init_ = true;
 	
 		std::string string1 = 
-			"from threading import Thread		\n"
-			"from sfgame import *				\n";
+			"from threading import Thread, Lock		\n"
+			"from sfgame import *					\n";
 
 		for (auto& it : scripts_){ //TODO add enabled property
 			string1 += "import " + it->getImportName() + "\n";
 		}
-		std::cout << string1 << std::endl;
+		
 		//define all classes
 		for (auto& it : obj_props_){
 			string1 += generatePyClassString(it);
 		}
+		std::cout << string1 << std::endl;
 
 		object result = exec(string1.c_str(), global, global);
 
@@ -302,7 +330,11 @@ void Game::start_py(){
 		std::string string2 = "";
 		for (auto& it : obj_props_){
 			std::string name = it["$name"];
-			string2 += ("import " + name + "\n");
+			string2 +=
+				"try:					\n"
+				"	import " + name + "\n" //in case object was not assigned a script
+				"except:				\n"
+				"	print('CANNOT IMPORT  " + name + "')				\n";
 		}
 
 		//Define functions that generate Python threads, as this is difficult to do from C++
@@ -320,19 +352,23 @@ void Game::start_py(){
 			"	game._addThread(t)						\n"
 			"game._runEvent = _runEvent					\n";
 
+		std::cout << string2 << std::endl;
+
 		object result2 = exec(string2.c_str(), global, global);
-
-		std::string string3 =
-			"def _start():					\n";
-		for (auto& it : scripts_){
-			string3 +=
-				"	t = Thread(target=" + it->getImportName() + ".run)		\n"
-				"	t.start()												\n"
-				"	game._addThread(t)										\n";
+		std::string string3 = "";
+		std::cout << "creating string 3..." << std::endl;
+		if (scripts_.size() > 0){
+			string3 =
+				"def _start():					\n";
+			for (auto& it : scripts_){
+				string3 +=
+					"	t = Thread(target=" + it->getImportName() + ".run)		\n"
+					"	t.start()												\n"
+					"	game._addThread(t)										\n";
+			}
+			string3 += "_start()\n";
 		}
-
-		string3 += "_start()\n";
-
+		std::cout << "loading level..." << std::endl;
 		loadLevel(load_file_ + ".level");
 
 		std::cout << "STRING3:" << std::endl;
@@ -346,14 +382,14 @@ void Game::start_py(){
 
 		//Block this thread until all the threads created have terminated.
 		//Necessary because this thread is holding the GIL.
-		while (!threads_.empty()){
+		/*while (!threads_.empty()){
 			//Iterate on a copy of threads to prevent iterator invalidating due to new thread being added
 			std::vector<boost::python::object> current_it = threads_;
 			threads_.clear();
 			for (auto& it : current_it){
 				it.attr("join")();
 			}
-		}
+		}*/
 
 		//TODO: maybe don't need this? thread can end safely? hm?
 
@@ -377,6 +413,11 @@ void Game::fireGlobalEvent(GAME_EVENT evt, boost::python::tuple args){
 	}
 }
 
+void Game::setBackgroundTexture(std::string texname){
+	background_spr_.setTexture(textures_.get(texname));
+	background_set_ = true;
+}
+
 
 void Game::addThread(boost::python::object thread){
 	//Add thread to list so that its lifetime is controlled
@@ -395,6 +436,12 @@ void Game::add(boost::python::object entity){
 	object_queue_.push_back(std::make_pair(entity, std::unique_ptr<Entity>(ent)));
 }
 
+void Game::addText(boost::python::object text){
+	Text* t = boost::python::extract<Text*>(text);
+	t->setParent(this);
+	text_queue_.push_back(std::make_pair(text, std::unique_ptr<Text>(t)));
+}
+
 void Game::update(int frametime){
 	//load levels that are scheduled
 	for (auto& it = scheduled_levels_.begin(); it != scheduled_levels_.end();){
@@ -403,9 +450,38 @@ void Game::update(int frametime){
 	}
 
 	//add objects in queue to list to be updated
-	for (auto& it = object_queue_.begin(); it != object_queue_.end();){
-		objects_.push_back(std::make_pair(it->first, std::move(it->second)));
-		it = object_queue_.erase(it);
+	//mutex_.lock();
+	//boost::python::exec("_mutex = Lock()\n_mutex.acquire()\n", global, global);
+
+	int maxn = object_queue_.size();
+	for (int n = 0; n < maxn;n++){ //This errors when using iterators due to multithreaded program adding object into queue while iterating.
+									//Should fix by locking mutex but I can't figure out how. So just abandon iterators for now.
+		auto element = &object_queue_[0];
+		objects_.push_back(std::make_pair(element->first, std::move(element->second)));
+		object_queue_.erase(object_queue_.begin());
+		fireGlobalEvent(ObjectAdded, boost::python::make_tuple(objects_.back().first));
+	}
+
+	maxn = text_queue_.size();
+	for (int n = 0; n < maxn; n++){ //This errors when using iterators due to multithreaded program adding object into queue while iterating.
+		//Should fix by locking mutex but I can't figure out how. So just abandon iterators for now.
+		auto element = &text_queue_[0];
+		texts_.push_back(std::make_pair(element->first, std::move(element->second)));
+		text_queue_.erase(text_queue_.begin());
+	}
+	//boost::python::exec("_mutex.release()\n", global, global);
+	//mutex_.unlock();
+
+	//remove objects that have been destroyed
+	for (auto& it = objects_.begin(); it != objects_.end();){
+		if (it->second->getDestroyed()){
+			fireGlobalEvent(ObjectRemoved, boost::python::make_tuple(it->first));
+			it->second.release();
+			it = objects_.erase(it);
+		}
+		else{
+			it++;
+		}
 	}
 
 	for (auto& it : objects_){
@@ -413,8 +489,32 @@ void Game::update(int frametime){
 	}
 }
 
-void Game::render(sf::RenderTarget* target){
+boost::python::object Game::getObjectByName(std::string name){
+	//returns first object found with given name (not much use if more than 1 object exists...)
+	//or None if no object exists
 	for (auto& it : objects_){
+		if (it.second->getName() == name){
+			return it.first;
+		}
+	}
+	return boost::python::object();
+}
+
+void Game::render(sf::RenderTarget* target){
+	if (background_set_){
+		target->draw(background_spr_);
+	}
+	for (auto& it : objects_){
+		if (it.second->getVisible() && it.second->getRenderBehind()){ //render objects at back first so they are behind other objects
+			it.second->render(target);
+		}
+	}
+	for (auto& it : objects_){
+		if (it.second->getVisible() && !it.second->getRenderBehind()){
+			it.second->render(target);
+		}
+	}
+	for (auto& it : texts_){
 		it.second->render(target);
 	}
 }
@@ -479,6 +579,11 @@ void Game::loadLevel(std::string filename){
 				}
 			}
 		}
+	}
+	//if last line is adding an object
+	if (type == TYPE_OBJ){
+		//if the previous line was an object then add it
+		python_execute += "game.add(_auto_loaded_object)\n";
 	}
 
 	std::cout << python_execute << std::endl;

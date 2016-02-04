@@ -13,6 +13,7 @@ lib sfml-graphics : : <name>sfml-graphics <search>D:/SFML/SFML-2.2/lib ;
 lib sfml-main : : <name>sfml-main <search>D:/SFML/SFML-2.2/lib ;
 lib sfml-system : : <name>sfml-system <search>D:/SFML/SFML-2.2/lib ;
 lib sfml-window : : <name>sfml-window <search>D:/SFML/SFML-2.2/lib ;
+lib sfml-audio : : <name>sfml-audio <search>D:/SFML/SFML-2.2/lib ;
 explicit sfmlpy ;
 	
 project
@@ -21,13 +22,14 @@ project
 					<library>sfml-main
 					<library>sfml-system
 					<library>sfml-window
+					<library>sfml-audio
 					<implicit-dependency>/boost//headers
 					<threading>multi
 					<include>D:/SFML/SFML-2/include
 	: usage-requirements <implicit-dependency>/boost//headers
 	;
 	
-python-extension sfgame : main.cpp Game.cpp Entity.cpp Vector2.cpp Projection.cpp Collision.cpp
+python-extension sfgame : main.cpp Game.cpp Entity.cpp Vector2.cpp Projection.cpp Collision.cpp Script.cpp Text.cpp
 	: <include>../
 	;
 	

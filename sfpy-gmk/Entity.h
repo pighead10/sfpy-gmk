@@ -36,11 +36,25 @@ public:
 	bool getCollidable() const;
 	void setCollidable(bool collidable);
 
+	bool getDestroyed() const;
+	void destroy();
+
+	std::string getName() const;
+	void setName(std::string name);
+
+	bool getRenderBehind() const;
+	void setRenderBehind(bool value);
+
 	std::string getTexture() const; //gets name of texture
 	void setTexture(std::string texture_name);
 
+	void setShape(std::string shape);
+
 	ENTITY_SHAPE getShape() const;
 	sf::Sprite getSprite() const;
+
+	void setOutBounds(bool value);
+	bool getOutBounds() const;
 
 	void registerEvent(Game::GAME_EVENT evt, boost::python::object func);
 	void fireEvent(Game::GAME_EVENT evt,boost::python::tuple args);
@@ -55,6 +69,11 @@ private:
 	boost::python::object velocity_;
 	bool visible_;
 	bool collidable_;
+	bool destroyed_;
+	bool render_behind_;
+	bool outbounds_;
+
+	std::string name_;
 	std::string texture_name_;
 
 	std::map<Game::GAME_EVENT, boost::python::object> events_;

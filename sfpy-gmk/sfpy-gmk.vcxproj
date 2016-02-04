@@ -76,6 +76,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Projection.cpp" />
     <ClCompile Include="Script.cpp" />
+    <ClCompile Include="Text.cpp" />
     <ClCompile Include="Vector2.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -86,6 +87,7 @@
     <ClInclude Include="Projection.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Script.h" />
+    <ClInclude Include="Text.h" />
     <ClInclude Include="Vector2.h" />
   </ItemGroup>
   <ItemGroup>

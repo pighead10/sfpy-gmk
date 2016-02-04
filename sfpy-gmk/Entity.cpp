@@ -5,24 +5,56 @@
 Entity::Entity(){
 }
 
-//TODO NEXT:
-//-Monday: Get event system working. Add events as much as possible. Get some tests working of semi playable games.
-//-Tuesday - Friday: get WHOLE LEVEL EDITOR WORKING BEFORE WEEKEND.
-
 void Entity::init_entity(Game* game){
 	//C++ initialisation of entity
 	//Called from python as _init_entity before Python constructor
 	parent_ = game;
 	sprite_ = sf::Sprite();
 	shape_ = SHAPE_CIRCLE;
+	render_behind_ = false;
+	destroyed_ = false;
+	outbounds_ = false;
 }
 
 Entity::ENTITY_SHAPE Entity::getShape() const{
 	return shape_;
 }
 
+bool Entity::getOutBounds() const{
+	return outbounds_;
+}
+
+void Entity::setOutBounds(bool value){
+	outbounds_ = value;
+}
+
 sf::Sprite Entity::getSprite() const{
 	return sprite_;
+}
+
+void Entity::destroy(){
+	destroyed_ = true;
+}
+
+bool Entity::getDestroyed() const{
+	return destroyed_;
+}
+
+void Entity::setShape(std::string shape){
+	if (shape == "circle"){
+		shape_ = SHAPE_CIRCLE;
+	}
+	else if (shape == "rectangle"){
+		shape_ = SHAPE_SQUARE;
+	}
+}
+
+void Entity::setRenderBehind(bool value){
+	render_behind_ = value;
+}
+
+bool Entity::getRenderBehind() const{
+	return render_behind_;
 }
 
 void Entity::move(maths::Vector2 offset){
@@ -40,7 +72,9 @@ void Entity::move(maths::Vector2 offset){
 			//If distance to entity is below [some number], it may be collided with this, so proceed to accurate SAT collision detection
 			//Otherwise, entity is definitely not collided with this, so the expensive SAT function does not need to be run
 
-			if (dist <= 60){ //TODO change this number
+			int maxl1 = std::max(getSprite().getLocalBounds().width, getSprite().getLocalBounds().height);
+			int maxl2 = std::max(entity->getSprite().getLocalBounds().width, entity->getSprite().getLocalBounds().height);
+			if (dist <= maxl1+maxl2){
 				MTV mtv(Collision::getCollision(getSprite(), getShape(), entity->getSprite(), entity->getShape()));
 
 				if (!(mtv.axis == MTV::NONE.axis && mtv.overlap == MTV::NONE.overlap)){ //If a collision has occurred
@@ -95,6 +129,14 @@ void Entity::update(int frametime){
 	sprite_.setPosition(position.getX(), position.getY());
 }
 
+std::string Entity::getName() const{
+	return name_;
+}
+
+void Entity::setName(std::string name){
+	name_ = name;
+}
+
 std::string Entity::getTexture() const{
 	return texture_name_;
 }
@@ -133,7 +175,17 @@ void Entity::setPyPosition(boost::python::object position){
 }
 
 void Entity::setPosition(maths::Vector2 position){
+	maths::Vector2 old_pos = getPosition();
 	setPyPosition(boost::python::object(position));
+	if (position.x > 1024 || position.x < 0 || position.y > 768 || position.y < 0){
+		if (!outbounds_){
+			fireEvent(Game::OutOfBounds, boost::python::make_tuple(old_pos));
+		}
+		outbounds_ = true;
+	}
+	else{
+		outbounds_ = false;
+	}
 }
 
 void Entity::render(sf::RenderTarget* target){
