@@ -6,6 +6,7 @@ bool Projection::overlap(const Projection& other) const{
 }
 
 double Projection::getOverlap(const Projection& other) const{
+	//Returns magnitude of overlap between projections, if any
 	if(overlap(other)){
 		return std::min(max,other.max) - std::max(min,other.min);
 	}

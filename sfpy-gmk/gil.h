@@ -2,7 +2,11 @@
 
 #include <boost/python.hpp>
 
-//RAII classes for easy control of the GIL
+/*
+ReleaseGIL and AcquireGIL:
+RAII classes for easy store/release of the Python Global Interpreter Lock
+Adapted from a StackOverflow post
+*/
 
 class ReleaseGIL{
 public:

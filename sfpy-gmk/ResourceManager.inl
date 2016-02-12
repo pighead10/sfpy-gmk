@@ -9,6 +9,7 @@ void ResourceManager<Resource, Identifier>::setDirectory(const std::string& path
 
 template<typename Resource, typename Identifier>
 void ResourceManager<Resource, Identifier>::load(const Identifier& identifier, const std::string& filename){
+	//Insert resource with given identifier into map if it doesn't already exist
 	if (resources_.find(identifier) == resources_.end()){
 		std::unique_ptr<Resource> resource(new Resource());
 
@@ -22,6 +23,8 @@ void ResourceManager<Resource, Identifier>::load(const Identifier& identifier, c
 
 template<typename Resource, typename Identifier>
 Resource& ResourceManager<Resource, Identifier>::get(const Identifier& identifier){
+	//Returns a reference to resource with given identifier
+	//Does not transfer ownership
 	auto resource = resources_.find(identifier);
 	if (resource == resources_.end()){
 		throw std::runtime_error("Error: Could not get identifier from resource map. Identifier: " + identifier);

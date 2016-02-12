@@ -47,13 +47,14 @@ void Game::start_gameloop(){
 					exit_ = true;
 				}
 				else if (evt.type == sf::Event::KeyPressed || evt.type == sf::Event::KeyReleased){
+					//Generate argument to pass into SFML based on key pressed
 					GAME_EVENT game_evt = (evt.type == sf::Event::KeyPressed ? KeyPressed : KeyReleased);
 					std::string arg;
 					if (evt.key.code >= 0 && evt.key.code <= 25){
-						arg = (char)(65 + evt.key.code);
+						arg = (char)(65 + evt.key.code); //Generate char with character of key pressed
 					}
 					else if (evt.key.code >= 26 && evt.key.code <= 35){
-						arg = std::to_string(evt.key.code - 26);
+						arg = std::to_string(evt.key.code - 26); //Generate char with number of key pressed
 					}
 					else if (evt.key.code == sf::Keyboard::Left){
 						arg = "left";
@@ -67,13 +68,14 @@ void Game::start_gameloop(){
 					else if (evt.key.code == sf::Keyboard::Down){
 						arg = "down";
 					}
-					if (evt.key.code == sf::Keyboard::L){ //TEMP
-						//scheduleLevel("testgame.level");
+					if (evt.key.code == sf::Keyboard::L){
+						
 					}
-
+					//Fire KeyPressed or KeyReleased event
 					fireGlobalEvent(game_evt, boost::python::make_tuple(arg));
 				}
 				else if (evt.type == sf::Event::MouseButtonPressed || evt.type == sf::Event::MouseButtonReleased){
+					//Fire a mouse button event with button pressed/released and position of cursor
 					AcquireGIL gil = AcquireGIL();
 					GAME_EVENT game_evt = (evt.type == sf::Event::MouseButtonPressed ? MousePressed : MouseReleased);
 					MOUSE_BUTTON but;
@@ -116,9 +118,12 @@ sf::Font* Game::getFont(){
 }
 
 void Game::load(std::string filename){
+	//Read gamefile to store game properties (objects, sprites, etc)
+	//See documentation for full explanation of this function
+
 	load_file_ = filename;
 	std::string gamefile = load_file_ + ".game";
-	//Read gamefile to store game properties (objects, sprites, etc)
+	
 	using namespace std;
 
 	ifstream fin(gamefile);
@@ -210,6 +215,7 @@ void Game::load(std::string filename){
 }
 
 void Game::load_scripts(){
+	//Generate and store scripts based on stored properties
 	for (auto& it : script_props_){
 		scripts_.push_back(std::unique_ptr<Script>(new Script(it["name"],it["filename"])));
 	}
@@ -220,12 +226,14 @@ ObjectList* Game::getObjects(){
 }
 
 void Game::load_textures(){
+	//Generate and store textures based on stored properties
 	for (auto& it : tex_props_){
 		textures_.load(it["name"], it["filename"]);
 	}
 }
 
 void Game::load_sounds(){
+	//Generate and store sounds based on stored properties
 	for (auto& it : sound_props_){
 		sounds_.load(it["name"], it["filename"]);
 	}
@@ -282,7 +290,7 @@ void Game::start_py(){
 	-Defines all user created classes, including creating the constructor
 	-Imports all user files
 	-Defines any necessary Python functions
-	-Runs necessary user code
+	-Runs user specified specified global scripts
 	*/
 
 	using namespace boost::python;
@@ -308,7 +316,7 @@ void Game::start_py(){
 			"from threading import Thread, Lock		\n"
 			"from sfgame import *					\n";
 
-		for (auto& it : scripts_){ //TODO add enabled property
+		for (auto& it : scripts_){
 			string1 += "import " + it->getImportName() + "\n";
 		}
 		
@@ -377,21 +385,6 @@ void Game::start_py(){
 		std::cout << "before run scripts" << std::endl;
 		object run_scripts = exec(string3.c_str(), global, global);
 		std::cout << "after run scripts" << std::endl;
-
-		//object run_script = exec_file("testglob.py", global, global);
-
-		//Block this thread until all the threads created have terminated.
-		//Necessary because this thread is holding the GIL.
-		/*while (!threads_.empty()){
-			//Iterate on a copy of threads to prevent iterator invalidating due to new thread being added
-			std::vector<boost::python::object> current_it = threads_;
-			threads_.clear();
-			for (auto& it : current_it){
-				it.attr("join")();
-			}
-		}*/
-
-		//TODO: maybe don't need this? thread can end safely? hm?
 
 	}
 	catch (const boost::python::error_already_set&){
@@ -520,6 +513,8 @@ void Game::render(sf::RenderTarget* target){
 }
 
 void Game::loadLevel(std::string filename){
+	//Generates Python code that will create all entities in positions specified by level file
+	//See documentation for explanation of this function
 	using namespace std;
 	ifstream fin(filename);
 	string line;
@@ -527,7 +522,7 @@ void Game::loadLevel(std::string filename){
 	CFG_PREFIX prefix = PREFIX_NONE;
 
 	for (auto& it = objects_.begin(); it != objects_.end();){
-		it->second.release(); //release ownership of pointer 
+		it->second.release(); //release ownership of pointer so that we don't get memory errors upon deletion 
 		it = objects_.erase(it);
 	}
 	object_queue_.clear();
@@ -548,8 +543,6 @@ void Game::loadLevel(std::string filename){
 			if (type == TYPE_NONE){
 				if (word == "obj"){
 					type = TYPE_OBJ;
-					//current_entity = new Entity(this);
-					//addEntity(current_entity);
 					prefix = PREFIX_NEXT;
 				}
 			}

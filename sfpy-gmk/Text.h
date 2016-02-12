@@ -4,6 +4,13 @@
 
 class Game;
 
+/*
+Text:
+Stores properties of a Python Text object and provides functions for Python to
+manipulate it.
+Requires rendering every frame.
+*/
+
 class Text{
 public:
 	Text();

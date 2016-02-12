@@ -18,9 +18,8 @@ BOOST_PYTHON_MODULE(sfgame){
 	//Enable threads
 	PyEval_InitThreads();
 
-	//Define classes
-	class_<maths::Vector2>("Vector2", init<double, double>()) //TODO: operator loading for exposed python vector2 class
-															//TODO: from python "vector.x = 10" not working, fix it
+	//Expose all necessary classes to Python
+	class_<maths::Vector2>("Vector2", init<double, double>()) 
 		.add_property("x", &maths::Vector2::getX, &maths::Vector2::setX)
 		.add_property("y", &maths::Vector2::getY, &maths::Vector2::setY)
 		.def("rotate",&maths::Vector2::rotate)
@@ -75,16 +74,19 @@ BOOST_PYTHON_MODULE(sfgame){
 		.value("Button2", Game::Button2)
 		.value("Button3", Game::Button3)
 		;
+	//Set global "game" variable in all Python code
 	scope().attr("game") = ptr(game);
 }
 
 int main(int argc,char *argv[]){
+	//Program should be called with a command line argument of the game to load
+	//eg sfpy-gmk.exe VillagerGame
 	std::string filename;
-	if (argc != 2){
+	if (argc != 2){ //If no argument specified, load a sample game
 		std::cout << "ERROR: Incorrect number of arguments received" << std::endl;
 		filename = "VillagerGame";
 	}
-	else{
+	else{ //Othewise set filename to the command line argument given
 		filename = argv[1];
 	}
 
@@ -105,7 +107,7 @@ int main(int argc,char *argv[]){
 	boost::thread gameloop_thread(boost::bind(&Game::start_gameloop, game));
 	game->start_py();
 
-	gameloop_thread.join();
+	gameloop_thread.join(); //Wait until the game loop has stopped before exiting (or the program will instantly close)
 
 	return 0;
 }

@@ -10,6 +10,14 @@
 #include <memory>
 #include "ResourceManager.h"
 
+/*
+Game:
+Main class for running the game. 
+Stores all objects, textures, sprites, scripts, entities, updates and renders game and
+handles objects being added and storing Python threads.
+Loads the game and level.
+*/
+
 class Entity;
 class Script;
 class Text;
@@ -122,7 +130,7 @@ private:
 	boost::python::object main_module;
 	boost::python::object global;
 
-	std::vector<sf::Sound*> sound_list_; //THIS IS TERRIBLE! CHANGE IT BEFORE IT'S TOO LATE!
+	std::vector<sf::Sound*> sound_list_;
 	sf::Color background_colour_;
 	bool background_set_;
 	sf::Sprite background_spr_;

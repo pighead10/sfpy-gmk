@@ -2,6 +2,12 @@
 
 #include <SFML/System/Vector2.hpp>
 
+/*
+Vector2:
+Mathematical 2 dimensional vector class whose coordinates are floats.
+Provides common mathematical functions to manipulate 2 dimensional vectors.
+*/
+
 namespace maths{ 
 	class Vector2 : public sf::Vector2f{
 	public:

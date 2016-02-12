@@ -123,6 +123,8 @@ void Entity::fireEvent(Game::GAME_EVENT evt, boost::python::tuple args){
 }
 
 void Entity::update(int frametime){
+	//Update entity by moving based on its current velocity and also updating the sprite position to match internal entity position
+
 	move(maths::Vector2(getVelocity().x*frametime, getVelocity().y*frametime));
 
 	maths::Vector2 position = getPosition();
@@ -175,6 +177,8 @@ void Entity::setPyPosition(boost::python::object position){
 }
 
 void Entity::setPosition(maths::Vector2 position){
+	//Set position, and fire OutOfBounds event if the position is off the edges of the screen
+
 	maths::Vector2 old_pos = getPosition();
 	setPyPosition(boost::python::object(position));
 	if (position.x > 1024 || position.x < 0 || position.y > 768 || position.y < 0){

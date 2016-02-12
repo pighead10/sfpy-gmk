@@ -5,6 +5,12 @@
 #include <boost/python.hpp>
 #include "Game.h"
 
+/*
+Entity:
+Object that exists in the world. Has properties corresponding to a python created
+Object and requires updating every frame.
+*/
+
 class Entity{
 public:
 	enum ENTITY_SHAPE{

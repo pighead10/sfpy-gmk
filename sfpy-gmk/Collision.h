@@ -1,6 +1,7 @@
-//some copied from https://github.com/LaurentGomila/SFML/wiki/SourceSimpleCollisionDetection
-//so unsure whether to include the license
-//pretty messy code, need to redo at some point
+/*
+Collision:
+Static class containing functions relating o SAT collision algorithms.
+*/
 
 #pragma once
 

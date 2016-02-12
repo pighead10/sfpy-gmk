@@ -2,9 +2,14 @@
 
 #include <string>
 
+/*
+Script:
+Stores properties of a script.
+*/
+
 class Script{
 public:
-	Script(std::string name, std::string filename); //todo more properties
+	Script(std::string name, std::string filename); 
 	~Script();
 
 	std::string getName() const;

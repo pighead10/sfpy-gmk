@@ -5,6 +5,12 @@
 #include <string>
 #include <map>
 
+/*
+ResourceManager:
+Templated class that stores a map of a given type of resource with an identifier for easy storage/retrieval.
+Suitable only for SFML resouces that have a .loadFromFile function.
+*/
+
 template <typename Resource, typename Identifier>
 class ResourceManager{
 public:
